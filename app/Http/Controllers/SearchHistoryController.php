@@ -10,6 +10,21 @@ class SearchHistoryController extends Controller
 {
     public function index(Request $request)
     {
+
+        $keywords = SearchHistory::selectRaw('keyword, count(*) as count')
+            ->groupBy('keyword')
+            ->orderByDesc('count')
+            ->get();
+
+        $users = SearchHistory::select('user_name')
+            ->distinct()
+            ->orderBy('user_name')
+            ->get();
+        return view('welcome', compact('keywords', 'users'));
+    }
+
+    public function fetchData(Request $request)
+    {
         $query = SearchHistory::query();
 
         $selectedKeywords = [];
@@ -38,20 +53,11 @@ class SearchHistoryController extends Controller
 
             $query->whereBetween('search_time', [$startDate, $endDate]);
         }
-
+        
         $searches = $query->paginate(10);
         $searches->appends($request->query());
 
-        $keywords = SearchHistory::selectRaw('keyword, count(*) as count')
-            ->groupBy('keyword')
-            ->orderByDesc('count')
-            ->get();
 
-        $users = SearchHistory::select('user_name')
-            ->distinct()
-            ->orderBy('user_name')
-            ->get();
-
-        return view('welcome', compact('searches', 'keywords', 'users', 'selectedKeywords', 'selectedUsers'));
+        return view('data', compact('searches'))->render();
     }
 }

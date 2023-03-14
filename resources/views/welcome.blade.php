@@ -38,9 +38,9 @@
                                 <h3>All Keywords:</h3>
                                 @foreach ($keywords as $keyword)
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="keywords[]"
-                                            value="{{ $keyword['keyword'] }}" id="{{ $keyword['keyword'] }}"
-                                            {{ in_array($keyword['keyword'], $selectedKeywords) ? 'checked' : '' }}>
+                                        <input class="form-check-input keyword-checkbox" type="checkbox"
+                                            name="keywords[]" value="{{ $keyword['keyword'] }}"
+                                            id="{{ $keyword['keyword'] }}" {{-- {{ in_array($keyword['keyword'], $selectedKeywords) ? 'checked' : '' }} --}}>
                                         <label class="form-check-label" for="{{ $keyword }}">
                                             {{ $keyword['keyword'] }} ({{ $keyword['count'] }} times found)
                                         </label>
@@ -52,9 +52,9 @@
                                 <h3>All Users:</h3>
                                 @foreach ($users as $user)
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="users[]"
+                                        <input class="form-check-input user-checkbox" type="checkbox" name="users[]"
                                             value="{{ $user->user_name }}" id="user-{{ $user->user_name }}"
-                                            {{ in_array($user->user_name, $selectedUsers) ? 'checked' : '' }}>
+                                            {{-- {{ in_array($user->user_name, $selectedUsers) ? 'checked' : '' }} --}}>
                                         <label class="form-check-label" for="user-{{ $user->user_name }}">
                                             {{ $user->user_name }}
                                         </label>
@@ -87,16 +87,18 @@
                                 <div class="form-group">
                                     <label for="start_date">Start Date:</label>
                                     <input type="date" class="form-control" name="start_date" id="start_date"
-                                        value="{{ isset($_GET['start_date']) ? $_GET['start_date'] : '' }}">
+                                        value="">
                                 </div>
                                 <div class="form-group">
                                     <label for="end_date">End Date:</label>
                                     <input type="date" class="form-control" name="end_date" id="end_date"
-                                        value="{{ isset($_GET['end_date']) ? $_GET['end_date'] : '' }}">
+                                        value="">
                                 </div>
                                 <div class="d-flex justify-content-between my-2">
                                     <a href="{{ route('home') }}" class="btn btn-danger">Reset Filters</a>
-                                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                                    <button type="button" class="btn btn-primary" onclick="fetch_data()">
+                                        Apply Filters
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -105,61 +107,8 @@
                 </div>
             </nav>
 
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="col-md-12 table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th scope="col">#</th>
-                                <th scope="col">Keyword</th>
-                                <th scope="col">Search Time</th>
-                                <th scope="col" width="500px">Search Results</th>
-                                <th scope="col">Total Results</th>
-                                <th scope="col">Search Engine</th>
-                                <th scope="col">Search Type</th>
-                                <th scope="col">User's Name</th>
-                                <th scope="col">Ip Address</th>
-                                <th scope="col">Device Type</th>
-                                <th scope="col">Browser Type</th>
-                                <th scope="col">Language</th>
-                                <th scope="col">Clicked Result</th>
-                                <th scope="col">Time Spent</th>
-                                <th scope="col">Section Active</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($searches as $key => $data)
-                                <tr>
-                                    <th scope="row">{{ $key + 1 }}</th>
-                                    <td>{{ $data->keyword }}</td>
-                                    <td>{{ $data->search_time }}</td>
-                                    <td>
-                                        @foreach (json_decode($data->search_results) as $result)
-                                            <strong>Title:</strong> {{ $result->title }}
-                                            <br>
-                                            <a href="{{ $result->url }}">{{ $result->url }}</a>
-                                            <br>
-                                        @endforeach
-                                    </td>
-                                    <td>{{ $data->total_results }}</td>
-                                    <td>{{ $data->search_engine }}</td>
-                                    <td>{{ $data->search_type }}</td>
-                                    <td>{{ $data->user_name }}</td>
-                                    <td>{{ $data->ip_address }}</td>
-                                    <td>{{ $data->device_type }}</td>
-                                    <td>{{ $data->browser_type }}</td>
-                                    <td>{{ $data->language }}</td>
-                                    <td>{{ $data->clicked_result }}</td>
-                                    <td>{{ $data->time_spent }}</td>
-                                    <td>{{ $data->is_section_active }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                    <div class="col-md-12">
-                        {{ $searches->links() }}
-                    </div>
-                </div>
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" id="table-data">
+                {{-- @include('data') --}}
             </main>
         </div>
     </div>
@@ -168,6 +117,61 @@
     <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <script src="https://getbootstrap.com/docs/5.3/examples/dashboard/dashboard.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            fetch_data();
+        });
+        
+        $(document).on('click', '.pagination a', function(event) {
+            event.preventDefault();
+            var page = $(this).attr('href').split('page=')[1];
+            fetch_data(page);
+        });
+
+        function get_users() {
+            _users = [];
+            i = 0;
+            $('.user-checkbox:checked').each(function() {
+                _users[i] = this.value;
+                i++;
+            });
+
+            return _users;
+        }
+
+        function get_keywords() {
+            _keywords = [];
+            j = 0;
+            $('.keyword-checkbox:checked').each(function() {
+                _keywords[j] = this.value;
+                j++;
+            });
+
+            return _keywords;
+        }
+
+        function fetch_data(page = 1) {
+            $.ajax({
+                url: "/fetch-data?page=" + page,
+                type: "GET",
+                data: {
+                    keywords: get_keywords(),
+                    users: get_users(),
+                    yesterday: $('#yesterday').is(":checked") ? 1 : "",
+                    last_week: $('#last_week').is(":checked") ? 1 : "",
+                    last_month: $('#last_month').is(":checked") ? 1 : "",
+                    start_date: $('#start_date').val() ?? "",
+                    end_date: $('#end_date').val() ?? "",
+                },
+                success(response) {
+                    $('#table-data').html(response);
+                }
+            });
+
+        }
+    </script>
 </body>
 
 </html>

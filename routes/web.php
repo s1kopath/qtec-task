@@ -15,3 +15,4 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', [SearchHistoryController::class, 'index'])->name('home');
+Route::get('/fetch-data', [SearchHistoryController::class, 'fetchData']);
